@@ -39,6 +39,8 @@ configuration:
           type: string
         region:
           type: string
+        use_s3api:
+          type: boolean
         args:
           type: string
         save-cache:

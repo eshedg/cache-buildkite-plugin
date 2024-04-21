@@ -7,6 +7,8 @@ BK_CACHE_COMPRESS=${BUILDKITE_PLUGIN_CACHE_COMPRESS:-false}
 BK_CACHE_COMPRESS_PROGRAM=${BUILDKITE_PLUGIN_CACHE_COMPRESS_PROGRAM:-gzip}
 BK_CACHE_SAVE_CACHE=${BUILDKITE_PLUGIN_CACHE_S3_SAVE_CACHE:-false}
 BK_ALWAYS_CACHE=${BUILDKITE_PLUGIN_CACHE_ALWAYS:-false}
+BK_USE_S3API=${BUILDKITE_PLUGIN_CACHE_S3_USE_S3API:-false}
+
 BK_CACHE_LOCAL_PATH="/tmp"
 BK_TAR_ARGS=()
 BK_TAR_ADDITIONAL_ARGS="--ignore-failed-read"
@@ -113,7 +115,11 @@ function restore() {
 
   if [[ ! "${BK_AWS_FOUND}" =~ (false) ]]; then
     TMP_FILE="$(mktemp)"
-    aws s3 cp ${BK_CUSTOM_AWS_ARGS} "s3://${BUCKET}/${TAR_FILE}" "${TMP_FILE}"  || s3_download_failed=true
+    if [[ "${BK_USE_S3API}" =~ (true|on|1) ]]; then
+      aws s3api get-object --bucket "${BUCKET}" --key "${TAR_FILE}" "${TAR_FILE}" "${BK_CUSTOM_AWS_ARGS}" || s3_download_failed=true
+    else
+      aws s3 cp ${BK_CUSTOM_AWS_ARGS} "s3://${BUCKET}/${TAR_FILE}" "${TMP_FILE}"  || s3_download_failed=true
+    fi
     if ${s3_download_failed:-false}; then
       echo -e "S3 download failed, soft failing and skipping cache restore..."
       return 0
@@ -153,7 +159,11 @@ function cache() {
     TMP_FILE="$(mktemp)"
     tar "${BK_TAR_ARGS[@]}" "${TMP_FILE}" ${TAR_TARGETS}
     mv -f "${TMP_FILE}" "${TAR_FILE}"
-    aws s3 cp ${BK_CUSTOM_AWS_ARGS} "${TAR_FILE}" "s3://${BUCKET}/${TAR_FILE}"
+    if [[ "${BK_USE_S3API}" =~ (true|on|1) ]]; then
+      aws s3api put-object --bucket "${BUCKET}" --key "${TAR_FILE}" --body "${TAR_FILE}" "${BK_CUSTOM_AWS_ARGS}"
+    else
+      aws s3 cp ${BK_CUSTOM_AWS_ARGS} "${TAR_FILE}" "s3://${BUCKET}/${TAR_FILE}"
+    fi
   fi
   rm -f "${TAR_FILE}"
 }
