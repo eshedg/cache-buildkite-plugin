@@ -39,8 +39,8 @@ configuration:
           type: string
         region:
           type: string
-        use_s3api:
-          type: boolean
+        tagging:
+          type: string
         args:
           type: string
         save-cache:

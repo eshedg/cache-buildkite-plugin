@@ -7,7 +7,7 @@ BK_CACHE_COMPRESS=${BUILDKITE_PLUGIN_CACHE_COMPRESS:-false}
 BK_CACHE_COMPRESS_PROGRAM=${BUILDKITE_PLUGIN_CACHE_COMPRESS_PROGRAM:-gzip}
 BK_CACHE_SAVE_CACHE=${BUILDKITE_PLUGIN_CACHE_S3_SAVE_CACHE:-false}
 BK_ALWAYS_CACHE=${BUILDKITE_PLUGIN_CACHE_ALWAYS:-false}
-BK_USE_S3API=${BUILDKITE_PLUGIN_CACHE_S3_USE_S3API:-false}
+BK_TAGGING=${BUILDKITE_PLUGIN_CACHE_S3_TAGGING:-}
 
 BK_CACHE_LOCAL_PATH="/tmp"
 BK_TAR_ARGS=()
@@ -115,12 +115,7 @@ function restore() {
 
   if [[ ! "${BK_AWS_FOUND}" =~ (false) ]]; then
     TMP_FILE="$(mktemp)"
-    if [[ "${BK_USE_S3API}" =~ (true|on|1) ]]; then
-      BK_S3API_KEY="${BUILDKITE_ORGANIZATION_SLUG}/$(pipeline_slug)/${TAR_FILE}"
-      aws s3api get-object --bucket "${BUILDKITE_PLUGIN_CACHE_S3_BUCKET}" --key "${BK_S3API_KEY}" "${TAR_FILE}" "${BK_CUSTOM_AWS_ARGS}" || s3_download_failed=true
-    else
-      aws s3 cp ${BK_CUSTOM_AWS_ARGS} "s3://${BUCKET}/${TAR_FILE}" "${TMP_FILE}"  || s3_download_failed=true
-    fi
+    aws s3 cp ${BK_CUSTOM_AWS_ARGS} "s3://${BUCKET}/${TAR_FILE}" "${TMP_FILE}"  || s3_download_failed=true
     if ${s3_download_failed:-false}; then
       echo -e "S3 download failed, soft failing and skipping cache restore..."
       return 0
@@ -161,11 +156,11 @@ function cache() {
     echo -e "${BK_LOG_PREFIX}:cache::tar: Calling tar ${BK_TAR_ARGS[@]} ${TMP_FILE} $(echo ${TAR_TARGETS})"
     tar "${BK_TAR_ARGS[@]}" "${TMP_FILE}" $(echo ${TAR_TARGETS})
     mv -f "${TMP_FILE}" "${TAR_FILE}"
-    if [[ "${BK_USE_S3API}" =~ (true|on|1) ]]; then
-      aws --version
+    if [ -n "${BK_TAGGING}" ]; then
       BK_S3API_KEY="${BUILDKITE_ORGANIZATION_SLUG}/$(pipeline_slug)/${TAR_FILE}"
+      BK_CUSTOM_AWS_ARGS="--tagging ${BK_TAGGING} ${BK_CUSTOM_AWS_ARGS}"
       echo -e "${BK_LOG_PREFIX}:cache::put-object: aws s3api put-object --bucket ${BUILDKITE_PLUGIN_CACHE_S3_BUCKET} --key ${BK_S3API_KEY} --body ${TAR_FILE} ${BK_CUSTOM_AWS_ARGS}"
-      aws s3api put-object --bucket "${BUILDKITE_PLUGIN_CACHE_S3_BUCKET}" --key "${BK_S3API_KEY}" --body "${TAR_FILE}" "${BK_CUSTOM_AWS_ARGS}"
+      aws s3api put-object --bucket "${BUILDKITE_PLUGIN_CACHE_S3_BUCKET}" --key "${BK_S3API_KEY}" --body "${TAR_FILE}" ${BK_CUSTOM_AWS_ARGS}
     else
       echo -e "${BK_LOG_PREFIX}:cache::cp: aws s3 cp ${BK_CUSTOM_AWS_ARGS} ${TAR_FILE} s3://${BUCKET}/${TAR_FILE}"
       aws s3 cp ${BK_CUSTOM_AWS_ARGS} "${TAR_FILE}" "s3://${BUCKET}/${TAR_FILE}"
