@@ -153,8 +153,7 @@ function cache() {
 
   if [ ! -f "$TAR_FILE" ]; then
     TMP_FILE="$(mktemp)"
-    echo -e "${BK_LOG_PREFIX}:cache::tar: Calling tar ${BK_TAR_ARGS[@]} ${TMP_FILE} $(echo ${TAR_TARGETS})"
-    tar "${BK_TAR_ARGS[@]}" "${TMP_FILE}" $(echo ${TAR_TARGETS})
+    tar ${BK_TAR_ARGS[@]} "${TMP_FILE}" $(echo ${TAR_TARGETS})
     mv -f "${TMP_FILE}" "${TAR_FILE}"
     if [ -n "${BK_TAGGING}" ]; then
       BK_S3API_KEY="${BUILDKITE_ORGANIZATION_SLUG}/$(pipeline_slug)/${TAR_FILE}"
