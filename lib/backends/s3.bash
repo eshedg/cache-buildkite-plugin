@@ -116,7 +116,8 @@ function restore() {
   if [[ ! "${BK_AWS_FOUND}" =~ (false) ]]; then
     TMP_FILE="$(mktemp)"
     if [[ "${BK_USE_S3API}" =~ (true|on|1) ]]; then
-      aws s3api get-object --bucket "${BUCKET}" --key "${TAR_FILE}" "${TAR_FILE}" "${BK_CUSTOM_AWS_ARGS}" || s3_download_failed=true
+      BK_S3API_KEY="${BUILDKITE_ORGANIZATION_SLUG}/$(pipeline_slug)/${TAR_FILE}"
+      aws s3api get-object --bucket "${BUILDKITE_PLUGIN_CACHE_S3_BUCKET}" --key "${BK_S3API_KEY}" "${TAR_FILE}" "${BK_CUSTOM_AWS_ARGS}" || s3_download_failed=true
     else
       aws s3 cp ${BK_CUSTOM_AWS_ARGS} "s3://${BUCKET}/${TAR_FILE}" "${TMP_FILE}"  || s3_download_failed=true
     fi
@@ -157,13 +158,16 @@ function cache() {
 
   if [ ! -f "$TAR_FILE" ]; then
     TMP_FILE="$(mktemp)"
+    echo -e "${BK_LOG_PREFIX}:cache::tar: Calling tar ${BK_TAR_ARGS[@]} ${TMP_FILE} $(echo ${TAR_TARGETS})"
     tar "${BK_TAR_ARGS[@]}" "${TMP_FILE}" $(echo ${TAR_TARGETS})
     mv -f "${TMP_FILE}" "${TAR_FILE}"
     if [[ "${BK_USE_S3API}" =~ (true|on|1) ]]; then
-      echo -e "using s3api: aws s3api put-object --bucket ${BUCKET} --key ${TAR_FILE} --body ${TAR_FILE} ${BK_CUSTOM_AWS_ARGS}"
-      aws s3api put-object --bucket "${BUCKET}" --key "${TAR_FILE}" --body "${TAR_FILE}" "${BK_CUSTOM_AWS_ARGS}"
+      aws --version
+      BK_S3API_KEY="${BUILDKITE_ORGANIZATION_SLUG}/$(pipeline_slug)/${TAR_FILE}"
+      echo -e "${BK_LOG_PREFIX}:cache::put-object: aws s3api put-object --bucket ${BUILDKITE_PLUGIN_CACHE_S3_BUCKET} --key ${BK_S3API_KEY} --body ${TAR_FILE} ${BK_CUSTOM_AWS_ARGS}"
+      aws s3api put-object --bucket "${BUILDKITE_PLUGIN_CACHE_S3_BUCKET}" --key "${BK_S3API_KEY}" --body "${TAR_FILE}" "${BK_CUSTOM_AWS_ARGS}"
     else
-      echo -e "using s3: aws s3 cp ${BK_CUSTOM_AWS_ARGS} ${TAR_FILE} s3://${BUCKET}/${TAR_FILE}"
+      echo -e "${BK_LOG_PREFIX}:cache::cp: aws s3 cp ${BK_CUSTOM_AWS_ARGS} ${TAR_FILE} s3://${BUCKET}/${TAR_FILE}"
       aws s3 cp ${BK_CUSTOM_AWS_ARGS} "${TAR_FILE}" "s3://${BUCKET}/${TAR_FILE}"
     fi
   fi
