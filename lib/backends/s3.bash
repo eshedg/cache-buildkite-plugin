@@ -157,12 +157,13 @@ function cache() {
 
   if [ ! -f "$TAR_FILE" ]; then
     TMP_FILE="$(mktemp)"
-    tar "${BK_TAR_ARGS[@]}" "${TMP_FILE}" ${TAR_TARGETS}
+    tar "${BK_TAR_ARGS[@]}" "${TMP_FILE}" $(echo ${TAR_TARGETS})
     mv -f "${TMP_FILE}" "${TAR_FILE}"
     if [[ "${BK_USE_S3API}" =~ (true|on|1) ]]; then
       echo -e "using s3api: aws s3api put-object --bucket ${BUCKET} --key ${TAR_FILE} --body ${TAR_FILE} ${BK_CUSTOM_AWS_ARGS}"
       aws s3api put-object --bucket "${BUCKET}" --key "${TAR_FILE}" --body "${TAR_FILE}" "${BK_CUSTOM_AWS_ARGS}"
     else
+      echo -e "using s3: aws s3 cp ${BK_CUSTOM_AWS_ARGS} ${TAR_FILE} s3://${BUCKET}/${TAR_FILE}"
       aws s3 cp ${BK_CUSTOM_AWS_ARGS} "${TAR_FILE}" "s3://${BUCKET}/${TAR_FILE}"
     fi
   fi
