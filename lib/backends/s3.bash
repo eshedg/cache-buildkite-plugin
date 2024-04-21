@@ -153,7 +153,6 @@ function cache() {
 
   if [ ! -f "$TAR_FILE" ]; then
     TMP_FILE="$(mktemp)"
-    set -x
     tar "${BK_TAR_ARGS[@]}" "${TMP_FILE}" $(echo ${TAR_TARGETS})
     mv -f "${TMP_FILE}" "${TAR_FILE}"
     if [ -n "${BK_TAGGING}" ]; then
