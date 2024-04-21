@@ -29,7 +29,7 @@ if [[ ! "$OSTYPE" == "darwin"* ]]; then
   if [[ ! "${BK_CACHE_COMPRESS:-false}" =~ (false) ]]; then
     number_re='^[0-9]+$'
     if [[ ${BK_CACHE_COMPRESS} =~ $number_re ]]; then
-      BK_TAR_ARGS=("$BK_TAR_ADDITIONAL_ARGS" --use-compress-program "$BK_CACHE_COMPRESS_PROGRAM -$BK_CACHE_COMPRESS" -cf)
+      BK_TAR_ARGS=("$BK_TAR_ADDITIONAL_ARGS" --use-compress-program "\"$BK_CACHE_COMPRESS_PROGRAM -$BK_CACHE_COMPRESS\"" -cf)
     else
       BK_TAR_ARGS=("$BK_TAR_ADDITIONAL_ARGS" -zcf)
     fi
