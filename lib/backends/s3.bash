@@ -27,9 +27,9 @@ if [[ ! "$OSTYPE" == "darwin"* ]]; then
   esac
 
   if [[ ! "${BK_CACHE_COMPRESS:-false}" =~ (false) ]]; then
-    number_re='^[0-9]+$'
+    number_re='^[1-9]+$'
     if [[ ${BK_CACHE_COMPRESS} =~ $number_re ]]; then
-      BK_TAR_ARGS=("$BK_TAR_ADDITIONAL_ARGS" --use-compress-program="\"$BK_CACHE_COMPRESS_PROGRAM -$BK_CACHE_COMPRESS\"" -cf)
+      BK_TAR_ARGS=("$BK_TAR_ADDITIONAL_ARGS" --use-compress-program="$BK_CACHE_COMPRESS_PROGRAM -$BK_CACHE_COMPRESS" -cf)
     else
       BK_TAR_ARGS=("$BK_TAR_ADDITIONAL_ARGS" -zcf)
     fi
@@ -153,7 +153,8 @@ function cache() {
 
   if [ ! -f "$TAR_FILE" ]; then
     TMP_FILE="$(mktemp)"
-    tar ${BK_TAR_ARGS[@]} "${TMP_FILE}" $(echo ${TAR_TARGETS})
+    set -x
+    tar "${BK_TAR_ARGS[@]}" "${TMP_FILE}" $(echo ${TAR_TARGETS})
     mv -f "${TMP_FILE}" "${TAR_FILE}"
     if [ -n "${BK_TAGGING}" ]; then
       BK_S3API_KEY="${BUILDKITE_ORGANIZATION_SLUG}/$(pipeline_slug)/${TAR_FILE}"
